@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg
+*.egg-info
+dist
+build
+.tox
+.nox
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.egg-info/PKG-INFO
+
+# Visual Studio
+*.suo
+*.user
+*.userprefs
+*.sln
+*.csproj
+*.csproj.user
+*.tmp
+*.log
+bin
+obj
+Debug
+Release
+x64
+Any CPU
+TestResults
+
+# .env
+.env
+venv
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.com.apple.timemachine.donotpresent
+DocumentRevisions-V100
+VolumeIcon.icns
+.fseventsd
+.Spotlight-V100/.index
+.TemporaryItems
+.apdisk

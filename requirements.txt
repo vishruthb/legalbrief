@@ -1,0 +1,13 @@
+streamlit==1.32.0
+python-dotenv==1.0.1
+supabase==2.3.4
+fastapi==0.110.0
+uvicorn==0.27.1
+sentence-transformers==2.5.1
+python-multipart==0.0.9
+numpy==1.26.4
+pandas==2.2.1
+scikit-learn==1.5.2
+llama-index-core>=0.11.0
+llama-index-readers-file>=0.1.7
+llama-cloud-services==0.6.9
