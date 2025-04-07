@@ -1,12 +1,25 @@
+import datetime
+import uuid
+
 import streamlit as st
 import requests
 from pathlib import Path
 import json
 import os
+
 from dotenv import load_dotenv
+from supabase import create_client
+
 
 # Load environment variables
 load_dotenv()
+
+# Initialize Supabase client
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+supabase = create_client(supabase_url, supabase_key)
+
+
 
 # API endpoints
 BACKEND_URL = "http://127.0.0.1:8000"
@@ -16,19 +29,64 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+def save_file_to_supabase(file, doc_type, metadata=None):
+    """Save uploaded file to Supabase storage"""
+    try:
+        # Generate unique file path
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_id = str(uuid.uuid4())[:8]
+        file_extension = Path(file.name).suffix
+        storage_path = f"legal_briefs/{doc_type}/{timestamp}_{file_id}{file_extension}"
 
+        # Upload file to storage bucket
+        response = supabase.storage.from_("documents").upload(
+            path=storage_path,
+            file=file.getvalue(),
+            file_options={"content-type": file.type}
+        )
+
+        # Get public URL
+        file_url = supabase.storage.from_("documents").get_public_url(storage_path)
+
+        # Store metadata in database
+        file_record = {
+            "filename": file.name,
+            "doc_type": doc_type,
+            "storage_path": storage_path,
+            "file_url": file_url,
+            "upload_date": datetime.datetime.now().isoformat(),
+            "metadata": metadata or {}
+        }
+
+        db_response = supabase.table("documents").insert(file_record).execute()
+
+        st.success(f"✅ {doc_type.title()} saved to Supabase")
+        return file_url
+
+    except Exception as e:
+        st.error(f"Error saving file to Supabase: {str(e)}")
+        return None
 def process_document(file, doc_type):
-    """Send document to backend for processing"""
+    """Send document to backend for processing and save to Supabase"""
     try:
         files = {"file": (file.name, file.getvalue(), file.type)}
         response = requests.post(f"{BACKEND_URL}/upload", files=files)
-        
+
         if response.status_code != 200:
             error_detail = response.json().get('detail', 'Unknown error')
             st.error(f"Error processing {doc_type}: {error_detail}")
             return None
-            
-        return response.json().get('data')
+
+        result_data = response.json().get('data')
+
+        # Save file to Supabase with processing metadata
+        save_file_to_supabase(file, doc_type, metadata={
+            "processed_at": datetime.datetime.now().isoformat(),
+            "content_summary": result_data.get("summary", ""),
+            "headings_count": len(result_data.get("headings", [])),
+        })
+
+        return result_data
     except requests.exceptions.RequestException as e:
         st.error(f"Error connecting to backend: {str(e)}")
         return None
@@ -122,6 +180,26 @@ def main():
                         display_linked_arguments(links_data)
     else:
         st.info("Please upload both briefs to begin analysis")
+    # Add section to view saved documents
+    st.divider()
+    st.header("Saved Documents")
+    if st.button("View Saved Briefs"):
+        with st.spinner("Loading saved documents..."):
+            try:
+                response = supabase.table("documents").select("*").order("upload_date", desc=True).limit(10).execute()
+                documents = response.data
+
+                if documents:
+                    for doc in documents:
+                        st.markdown(f"**{doc['filename']}** ({doc['doc_type']})")
+                        st.markdown(f"Uploaded: {doc['upload_date'][:10]}")
+                        if st.button("Load", key=f"load_{doc['id']}"):
+                            # TODO: Implement loading saved document
+                            st.info(f"Loading {doc['filename']}...")
+                else:
+                    st.info("No saved documents found")
+            except Exception as e:
+                st.error(f"Error retrieving saved documents: {str(e)}")
 
 if __name__ == "__main__":
     main()
