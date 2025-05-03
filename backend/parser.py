@@ -8,16 +8,12 @@ import json
 import nest_asyncio
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
-
 load_dotenv()
-
-LLAMA_CLOUD_API_KEY = os.getenv("LLAMAPARSE_API_KEY")  # Using the same env var for compatibility
+LLAMA_CLOUD_API_KEY = os.getenv("LLAMAPARSE_API_KEY")
 
 async def parse_document(file: UploadFile) -> Dict:
     """
@@ -29,7 +25,6 @@ async def parse_document(file: UploadFile) -> Dict:
         logger.error("LlamaParse API key not found")
         raise ValueError("LlamaParse API key not found")
 
-    # Save uploaded file temporarily
     temp_path = f"/tmp/{file.filename}"
     try:
         with open(temp_path, "wb") as temp_file:
@@ -39,8 +34,7 @@ async def parse_document(file: UploadFile) -> Dict:
         logger.info(f"File saved temporarily at: {temp_path}")
         
         # For testing purposes, return a mock structure if LlamaParse is not working
-        # This helps bypass LlamaParse issues during development
-        # Remove this in production
+        # This helps bypass LlamaParse issues during development -> can remove later on tbh
         logger.info("Using mock data for testing")
         structured_content = {
             "brief_id": str(hash(file.filename))[:8],
@@ -61,7 +55,7 @@ async def parse_document(file: UploadFile) -> Dict:
         logger.info("Document parsing completed successfully")
         return structured_content
         
-        # Uncomment the below code when LlamaParse is properly configured
+        # Uncomment when LlamaParse is configured
         """
         # Initialize LlamaParse with markdown output
         parser = LlamaParse(
@@ -119,7 +113,6 @@ async def parse_document(file: UploadFile) -> Dict:
         raise
     
     finally:
-        # Clean up temporary file
         if os.path.exists(temp_path):
             os.remove(temp_path)
             logger.info(f"Temporary file removed: {temp_path}")
@@ -128,7 +121,6 @@ def is_argument_section(heading: str) -> bool:
     """
     Determine if a section is an argument section based on its heading
     """
-    # Common patterns in legal brief argument sections
     argument_indicators = [
         "argument",
         "point",
