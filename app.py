@@ -10,18 +10,12 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client
 
-
-# Load environment variables
 load_dotenv()
 
-# Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 supabase = create_client(supabase_url, supabase_key)
 
-
-
-# API endpoints
 BACKEND_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
@@ -32,23 +26,20 @@ st.set_page_config(
 def save_file_to_supabase(file, doc_type, metadata=None):
     """Save uploaded file to Supabase storage"""
     try:
-        # Generate unique file path
+
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         file_id = str(uuid.uuid4())[:8]
         file_extension = Path(file.name).suffix
         storage_path = f"legal_briefs/{doc_type}/{timestamp}_{file_id}{file_extension}"
 
-        # Upload file to storage bucket
         response = supabase.storage.from_("documents").upload(
             path=storage_path,
             file=file.getvalue(),
             file_options={"content-type": file.type}
         )
 
-        # Get public URL
         file_url = supabase.storage.from_("documents").get_public_url(storage_path)
 
-        # Store metadata in database
         file_record = {
             "filename": file.name,
             "doc_type": doc_type,
@@ -79,7 +70,6 @@ def process_document(file, doc_type):
 
         result_data = response.json().get('data')
 
-        # Save file to Supabase with processing metadata
         save_file_to_supabase(file, doc_type, metadata={
             "processed_at": datetime.datetime.now().isoformat(),
             "content_summary": result_data.get("summary", ""),
@@ -98,17 +88,17 @@ def link_documents(moving_brief_data, response_brief_data):
             "moving_brief": moving_brief_data,
             "response_brief": response_brief_data
         }
-        
+
         response = requests.post(
             f"{BACKEND_URL}/link",
             json=payload
         )
-        
+
         if response.status_code != 200:
             error_detail = response.json().get('detail', 'Unknown error')
             st.error(f"Error linking documents: {error_detail}")
             return None
-            
+
         return response.json()
     except requests.exceptions.RequestException as e:
         st.error(f"Error connecting to backend: {str(e)}")
@@ -122,18 +112,15 @@ def display_linked_arguments(links_data):
 
     for link in links_data["links"]:
         cols = st.columns(2)
-        
-        # Moving brief argument
+
         with cols[0]:
             st.markdown("### Moving Brief")
             st.markdown(f"**{link['moving_brief_heading']}**")
-            
-        # Response brief argument
+
         with cols[1]:
             st.markdown("### Response Brief")
             st.markdown(f"**{link['response_brief_heading']}**")
-            
-        # Explanation and similarity score
+
         st.markdown("#### Link Details")
         st.markdown(f"Similarity Score: {link['similarity_score']:.2f}")
         st.markdown("**Explanation:**")
@@ -142,36 +129,32 @@ def display_linked_arguments(links_data):
 
 def main():
     st.title("Legal Brief Analysis")
-    
-    # Sidebar for file upload and controls
+
     with st.sidebar:
         st.header("Document Upload")
         moving_brief = st.file_uploader("Upload Moving Brief", type=["pdf", "docx"])
         response_brief = st.file_uploader("Upload Response Brief", type=["pdf", "docx"])
-        
+
         st.divider()
         st.header("Demo Documents")
         if st.button("Load Demo Briefs"):
-            # TODO: Load demo documents from database
+
             pass
-    
-    # Main content area
+
     if moving_brief and response_brief:
         if st.button("Process Documents", type="primary"):
             with st.spinner("Processing documents..."):
-                # Process moving brief
+
                 st.info(f"Processing moving brief: {moving_brief.name}")
                 moving_brief_data = process_document(moving_brief, "moving brief")
                 if not moving_brief_data:
                     return
-                
-                # Process response brief
+
                 st.info(f"Processing response brief: {response_brief.name}")
                 response_brief_data = process_document(response_brief, "response brief")
                 if not response_brief_data:
                     return
-                
-                # Link the documents
+
                 with st.spinner("Analyzing arguments and finding links..."):
                     st.info("Finding semantic links between arguments...")
                     links_data = link_documents(moving_brief_data, response_brief_data)
@@ -180,7 +163,7 @@ def main():
                         display_linked_arguments(links_data)
     else:
         st.info("Please upload both briefs to begin analysis")
-    # Add section to view saved documents
+
     st.divider()
     st.header("Saved Documents")
     if st.button("View Saved Briefs"):
@@ -194,7 +177,7 @@ def main():
                         st.markdown(f"**{doc['filename']}** ({doc['doc_type']})")
                         st.markdown(f"Uploaded: {doc['upload_date'][:10]}")
                         if st.button("Load", key=f"load_{doc['id']}"):
-                            # TODO: Implement loading saved document
+
                             st.info(f"Loading {doc['filename']}...")
                 else:
                     st.info("No saved documents found")
