@@ -5,13 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def setup_database():
-    # Initialize Supabase client
+
     supabase = create_client(
         os.getenv("SUPABASE_URL"),
         os.getenv("SUPABASE_KEY")
     )
-    
-    # Create briefs table
+
     briefs_table = """
     create table if not exists briefs (
         brief_id uuid default uuid_generate_v4() primary key,
@@ -21,8 +20,7 @@ def setup_database():
         is_demo boolean default false
     );
     """
-    
-    # Create links table
+
     links_table = """
     create table if not exists links (
         link_id uuid default uuid_generate_v4() primary key,
@@ -34,21 +32,20 @@ def setup_database():
         created_at timestamp with time zone default timezone('utc'::text, now())
     );
     """
-    
+
     try:
-        # Execute table creation
+
         supabase.table("briefs").select("*").limit(1).execute()
         print("✅ Connected to Supabase successfully")
-        
-        # Create tables using raw SQL
+
         supabase.query(briefs_table).execute()
         print("✅ Created briefs table")
-        
+
         supabase.query(links_table).execute()
         print("✅ Created links table")
-        
+
         print("\nDatabase setup completed successfully!")
-        
+
     except Exception as e:
         print(f"❌ Error setting up database: {str(e)}")
 
