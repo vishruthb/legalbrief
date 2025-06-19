@@ -1,4 +1,4 @@
-# Legal Brief Analysis MVP
+# legalbrief
 Stanford LLM | Bloomberg Terminal 25 Project
 
 An application that analyzes legal briefs, linking arguments between moving and response briefs using LlamaParse and semantic similarity.
